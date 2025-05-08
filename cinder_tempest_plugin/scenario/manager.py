@@ -229,6 +229,34 @@ class ScenarioTest(manager.ScenarioTest):
         self.addCleanup(self._detach_volume, server, volume)
         return attachment
 
+    def attach_volume_start(self, server, volume, device=None, tag=None):
+        """Starts attaching volume to server.
+
+        Does not wait for completion.
+
+        """
+
+        attach_kwargs = dict(volumeId=volume['id'])
+        if device:
+            attach_kwargs['device'] = device
+        if tag:
+            attach_kwargs['tag'] = tag
+
+        attachment = self.servers_client.attach_volume(
+            server['id'], **attach_kwargs)['volumeAttachment']
+
+        self.addCleanup(waiters.wait_for_volume_attachment_remove,
+                        self.volumes_client, volume['id'],
+                        attachment['attachment_id'])
+
+        self.addCleanup(self._detach_volume, server, volume)
+
+    def attach_volume_complete(self, server, volume, att):
+        waiters.wait_for_volume_resource_status(
+            self.volumes_client,
+            volume['id'],
+            'in-use')
+
     def _detach_volume(self, server, volume):
         """Helper method to detach a volume.
 

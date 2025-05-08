@@ -30,7 +30,12 @@ cinder_option = [
                 '`volume_image_dep_tests` '
                 'in cinder-tempest-plugin is deprecated.Alternatively '
                 '`CONF.volume_feature_enabled.enable_volume_image_dep_tests` '
-                'can be used for dependency tests.')
+                'can be used for dependency tests.'),
+    cfg.IntOpt('num_volumes_to_attach',
+               default=5,
+               min=2,
+               help='Number of volumes to simultaneously attach in the '
+                    'multiple resource test(s).')
 ]
 
 # The barbican service is discovered by config_tempest [1], and will appear

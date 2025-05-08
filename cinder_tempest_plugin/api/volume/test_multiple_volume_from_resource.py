@@ -13,6 +13,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from tempest.common import utils
 from tempest.common import waiters
 from tempest import config
 from tempest.lib import decorators
@@ -20,6 +21,65 @@ from tempest.lib import decorators
 from cinder_tempest_plugin.api.volume import base
 
 CONF = config.CONF
+
+
+class CreateAndAttachManyVolumesTest(base.CreateMultipleResourceTest):
+
+    def _attach_multiple_volumes(self, res, server):
+        """Attach multiple volumes.
+
+           Start attachment process for each volume, then ensure all
+           complete after all are already in-flight.  This means that
+           attachments happen simultaneously instead of sequentially.
+        """
+        results = []
+        for v in res:
+            # start attach process
+            att = self.attach_volume_start(
+                server,
+                v)
+            results.append((v, att))
+
+        for v in results:
+            # check that attach completed
+            self.attach_volume_complete(server, v[0], v[1])
+
+    def _detach_multiple_volumes(self, res, server):
+        for v in res:
+            # detach volume completely
+            # is it worth splitting this in two like attach?
+            self._detach_volume(server, v)
+
+    @utils.services('volume', 'compute')
+    @decorators.idempotent_id('df8fa9b5-0443-49bb-b652-691d45c0a2f4')
+    def test_create_and_attach_many_volumes(self):
+        num_volumes = CONF.num_volumes_to_attach  # TODO
+        num_volumes = 20
+        # volumes = []
+
+        # start create server
+        server = self.create_server(wait_until='SSHABLE')
+        # TODO: could optimize this to spin up volumes while server
+        # is still booting
+
+        kwargs_create = {}
+
+        res = self._create_multiple_resource(self.create_volume,
+                                             **kwargs_create,
+                                             repeat_count=num_volumes)
+        kwargs_wait = {'client': self.volumes_client,
+                       'status': 'available'}
+
+        self._wait_for_multiple_resources(
+            waiters.wait_for_volume_resource_status,
+            res,
+            **kwargs_wait)
+
+        # attach all volumes to server
+        self._attach_multiple_volumes(res, server)
+
+        # detach all volumes from server
+        self._detach_multiple_volumes(res, server)
 
 
 class CreateVolumesFromSnapshotTest(base.CreateMultipleResourceTest):
