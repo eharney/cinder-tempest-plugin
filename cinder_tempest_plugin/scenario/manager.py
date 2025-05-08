@@ -229,14 +229,14 @@ class ScenarioTest(manager.ScenarioTest):
         self.addCleanup(self._detach_volume, server, volume)
         return attachment
 
-    def attach_volume_start(self, server, volume, device=None, tag=None):
+    def attach_volume_start(self, server, volume: str, device=None, tag=None):
         """Starts attaching volume to server.
 
         Does not wait for completion.
 
         """
 
-        attach_kwargs = dict(volumeId=volume['id'])
+        attach_kwargs = dict(volumeId=volume)
         if device:
             attach_kwargs['device'] = device
         if tag:
@@ -251,7 +251,7 @@ class ScenarioTest(manager.ScenarioTest):
 
         self.addCleanup(self._detach_volume, server, volume)
 
-    def attach_volume_complete(self, server, volume, att):
+    def attach_volume_complete(self, server, volume):
         waiters.wait_for_volume_resource_status(
             self.volumes_client,
             volume['id'],
